@@ -27,8 +27,10 @@ private:
     bool old_is_locked;
     bool is_refresh;
 
+    int wrong_count;
+
 public:
-    SmartLock(LiquidCrystal &lcd) : lcd(lcd), is_refresh(false), is_locked(true), old_is_locked(false)
+    SmartLock(LiquidCrystal &lcd) : lcd(lcd), is_refresh(false), is_locked(true), old_is_locked(false), wrong_count(0)
     {
     }
 
@@ -43,15 +45,12 @@ public:
 
     void lost_security()
     {
-        if (this->is_locked)
+        for (int i = 0; i < 50; i++)
         {
-            for (int i = 0; i < 50; i++)
-            {
-                digitalWrite(SmartLock::piezo, HIGH);
-                delay(100);
-                digitalWrite(SmartLock::piezo, LOW);
-                delay(100);
-            }
+            digitalWrite(SmartLock::piezo, HIGH);
+            delay(100);
+            digitalWrite(SmartLock::piezo, LOW);
+            delay(100);
         }
     }
 
@@ -116,6 +115,10 @@ public:
         lcd.clear();
         lcd.print(" WRONG PASSWORD ");
         this->incorrect_sound();
+        
+        this->wrong_count++;
+        if (this->wrong_count >= 3)
+            this->lost_security();
     }
 
     void correct()
@@ -123,6 +126,7 @@ public:
         lcd.clear();
         lcd.print("CORRECT PASSWORD");
         this->correct_sound();
+        this->wrong_count = 0;
     }
 
     void render()
@@ -163,7 +167,7 @@ public:
             this->old_is_locked = this->is_locked;
         }
 
-        if (!digitalRead(this->sercurity_pin))
+        if (this->is_locked && !digitalRead(this->sercurity_pin))
             this->lost_security();
     }
 
